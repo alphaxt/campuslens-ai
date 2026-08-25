@@ -32,3 +32,29 @@ def save_report(report_data: dict):
     )
 
     return response.data
+
+
+def get_all_reports():
+
+    response = (
+        supabase
+        .table("reports")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return response.data
+
+
+def get_report_by_id(report_id: str):
+
+    response = (
+        supabase
+        .table("reports")
+        .select("*")
+        .eq("id", report_id)
+        .execute()
+    )
+
+    return response.data

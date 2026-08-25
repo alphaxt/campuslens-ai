@@ -1,5 +1,11 @@
 from fastapi import FastAPI, HTTPException
-from services.database import save_report
+from fastapi.middleware.cors import CORSMiddleware
+
+from services.database import (
+    save_report,
+    get_all_reports,
+    get_report_by_id
+)
 
 from models.report import ReportRequest
 from services.ai_service import analyze_issue
@@ -10,6 +16,17 @@ app = FastAPI(
     title="CampusLens AI API",
     description="Backend API for CampusLens AI",
     version="0.1.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
 
@@ -83,6 +100,51 @@ def create_report(report: ReportRequest):
 
     except Exception as error:
 
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+@app.get("/reports")
+def list_reports():
+
+    try:
+        reports = get_all_reports()
+
+        return {
+            "success": True,
+            "count": len(reports),
+            "reports": reports
+        }
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+
+@app.get("/reports/{report_id}")
+def get_report(report_id: str):
+
+    try:
+        reports = get_report_by_id(report_id)
+
+        if not reports:
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found"
+            )
+
+        return {
+            "success": True,
+            "report": reports[0]
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
         raise HTTPException(
             status_code=500,
             detail=str(error)
