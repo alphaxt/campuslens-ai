@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { getReports, updateReportStatus } from "../services/api"
 import AnalyticsCharts from "../components/dashboard/AnalyticsCharts"
-
+import CampusPulse from "../components/dashboard/CampusPulse"
 
 function AdminDashboard() {
     const [reports, setReports] = useState([])
@@ -177,9 +177,14 @@ function AdminDashboard() {
             </div>
 
 
+            <div className="mb-10">
+                <CampusPulse />
+            </div>
+
+
             {/* Analytics */}
             <div className="mb-10">
-                <AnalyticsCharts reports={reports} />          
+                <AnalyticsCharts reports={reports} />
             </div>
 
 

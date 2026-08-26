@@ -11,7 +11,10 @@ from services.database import (
     update_report_status
 )
 
-from services.ai_service import analyze_issue
+from services.ai_service import (
+    analyze_issue,
+    generate_campus_pulse
+)
 from services.priority import calculate_priority
 
 
@@ -193,6 +196,27 @@ def change_report_status(
 
     except HTTPException:
         raise
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+
+@app.get("/analytics/campus-pulse")
+def campus_pulse():
+
+    try:
+        reports = get_all_reports()
+
+        pulse = generate_campus_pulse(reports)
+
+        return {
+            "success": True,
+            "report_count": len(reports),
+            "pulse": pulse
+        }
 
     except Exception as error:
         raise HTTPException(

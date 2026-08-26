@@ -72,3 +72,82 @@ Return JSON only.
         text = text.strip()
 
     return json.loads(text)
+
+
+def generate_campus_pulse(reports: list) -> dict:
+
+    if not reports:
+        return {
+            "headline": "No campus reports available",
+            "summary": "There is not enough report data to generate a Campus Pulse summary.",
+            "major_concern": "No major concern detected.",
+            "emerging_trend": "No emerging trend detected.",
+            "critical_issue": "No critical issue detected.",
+            "improvement": "No improvement data available.",
+            "recommended_actions": []
+        }
+
+
+    compact_reports = []
+
+    for report in reports:
+        compact_reports.append({
+            "summary": report.get("ai_summary"),
+            "category": report.get("category"),
+            "severity": report.get("severity"),
+            "location": report.get("extracted_location"),
+            "department": report.get("recommended_department"),
+            "priority_score": report.get("priority_score"),
+            "status": report.get("status")
+        })
+
+
+    prompt = f"""
+You are the Campus Pulse intelligence engine for CampusLens AI.
+
+Analyze the following university campus issue reports:
+
+{json.dumps(compact_reports, indent=2)}
+
+Return ONLY valid JSON using exactly this structure:
+
+{{
+    "headline": "short headline about the overall campus situation",
+    "summary": "2-3 sentence executive summary",
+    "major_concern": "most important current campus concern",
+    "emerging_trend": "important pattern visible in the reports",
+    "critical_issue": "highest-risk or most urgent issue",
+    "improvement": "positive improvement or resolved trend if visible",
+    "recommended_actions": [
+        "action 1",
+        "action 2",
+        "action 3"
+    ]
+}}
+
+Rules:
+
+- Base the response only on the provided reports.
+- Prioritize safety and accessibility issues even if their report count is low.
+- Consider severity, priority scores, unresolved statuses and repeated categories.
+- Do not invent information that is not supported by the reports.
+- If there is not enough evidence for an improvement, say "No clear improvement detected."
+- Return no markdown.
+- Return JSON only.
+"""
+
+
+    response = client.models.generate_content(
+        model="gemini-3.6-flash",
+        contents=prompt
+    )
+
+
+    text = response.text.strip()
+
+    if text.startswith("```"):
+        text = text.replace("```json", "")
+        text = text.replace("```", "")
+        text = text.strip()
+
+    return json.loads(text)

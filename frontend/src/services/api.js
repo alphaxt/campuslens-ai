@@ -53,3 +53,21 @@ export async function updateReportStatus(reportId, status) {
 
   return response.json()
 }
+
+
+export async function getCampusPulse() {
+
+  const response = await fetch(
+    `${API_URL}/analytics/campus-pulse`
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+
+    throw new Error(
+      error.detail || "Failed to generate Campus Pulse"
+    )
+  }
+
+  return response.json()
+}
