@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { getReports, updateReportStatus } from "../services/api"
+import AnalyticsCharts from "../components/dashboard/AnalyticsCharts"
 
 
 function AdminDashboard() {
@@ -34,10 +35,33 @@ function AdminDashboard() {
     }
 
 
-    const filteredReports = useMemo(() => {
+    async function handleStatusChange(reportId, newStatus) {
+        try {
+            setError("")
 
+            await updateReportStatus(reportId, newStatus)
+
+            setReports((currentReports) =>
+                currentReports.map((report) =>
+                    report.id === reportId
+                        ? {
+                            ...report,
+                            status: newStatus
+                        }
+                        : report
+                )
+            )
+
+        } catch (err) {
+            setError(err.message)
+        }
+    }
+
+
+    const filteredReports = useMemo(() => {
         return reports
             .filter((report) => {
+
                 if (
                     categoryFilter !== "All" &&
                     report.category !== categoryFilter
@@ -82,7 +106,8 @@ function AdminDashboard() {
     ).length
 
     const highPriorityReports = reports.filter(
-        (report) => (report.priority_score || 0) >= 70
+        (report) =>
+            (report.priority_score || 0) >= 70
     ).length
 
     const resolvedReports = reports.filter(
@@ -126,6 +151,7 @@ function AdminDashboard() {
             )}
 
 
+            {/* Summary Cards */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
 
                 <StatCard
@@ -151,6 +177,13 @@ function AdminDashboard() {
             </div>
 
 
+            {/* Analytics */}
+            <div className="mb-10">
+                <AnalyticsCharts reports={reports} />          
+            </div>
+
+
+            {/* Filters */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8">
 
                 <h2 className="text-xl font-semibold mb-5">
@@ -208,11 +241,12 @@ function AdminDashboard() {
             </div>
 
 
+            {/* Reports Table */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
 
                 <div className="p-6 border-b border-slate-800">
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-4">
 
                         <div>
                             <h2 className="text-xl font-semibold">
@@ -267,7 +301,7 @@ function AdminDashboard() {
                                     <td className="p-4">
 
                                         <p className="font-medium max-w-xs">
-                                            {report.ai_summary}
+                                            {report.ai_summary || "No summary"}
                                         </p>
 
                                         <p className="text-xs text-slate-500 mt-1">
@@ -276,23 +310,30 @@ function AdminDashboard() {
 
                                     </td>
 
-                                    <td className="p-4">
-                                        {report.category}
-                                    </td>
 
                                     <td className="p-4">
+                                        {report.category || "Unknown"}
+                                    </td>
+
+
+                                    <td className="p-4">
+
                                         <SeverityBadge
                                             severity={report.severity}
                                         />
+
                                     </td>
+
 
                                     <td className="p-4">
                                         {report.extracted_location || "Unknown"}
                                     </td>
 
+
                                     <td className="p-4">
-                                        {report.recommended_department}
+                                        {report.recommended_department || "Unknown"}
                                     </td>
+
 
                                     <td className="p-4">
 
@@ -302,23 +343,40 @@ function AdminDashboard() {
 
                                     </td>
 
+
                                     <td className="p-4">
+
                                         <select
-                                            value={report.status}
+                                            value={report.status || "Submitted"}
                                             onChange={(event) =>
                                                 handleStatusChange(
                                                     report.id,
                                                     event.target.value
                                                 )
                                             }
-                                            className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm"
+                                            className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500"
                                         >
-                                            <option>Submitted</option>
-                                            <option>Under Review</option>
-                                            <option>In Progress</option>
-                                            <option>Resolved</option>
-                                            <option>Closed</option>
+                                            <option value="Submitted">
+                                                Submitted
+                                            </option>
+
+                                            <option value="Under Review">
+                                                Under Review
+                                            </option>
+
+                                            <option value="In Progress">
+                                                In Progress
+                                            </option>
+
+                                            <option value="Resolved">
+                                                Resolved
+                                            </option>
+
+                                            <option value="Closed">
+                                                Closed
+                                            </option>
                                         </select>
+
                                     </td>
 
                                 </tr>
@@ -386,12 +444,14 @@ function Filter({
             >
 
                 {options.map((option) => (
+
                     <option
                         key={option}
                         value={option}
                     >
                         {option}
                     </option>
+
                 ))}
 
             </select>
@@ -404,18 +464,26 @@ function Filter({
 function SeverityBadge({ severity }) {
 
     const styles = {
-        Low: "bg-green-950 text-green-300 border-green-800",
-        Medium: "bg-yellow-950 text-yellow-300 border-yellow-800",
-        High: "bg-orange-950 text-orange-300 border-orange-800",
-        Critical: "bg-red-950 text-red-300 border-red-800",
+        Low:
+            "bg-green-950 text-green-300 border-green-800",
+
+        Medium:
+            "bg-yellow-950 text-yellow-300 border-yellow-800",
+
+        High:
+            "bg-orange-950 text-orange-300 border-orange-800",
+
+        Critical:
+            "bg-red-950 text-red-300 border-red-800"
     }
 
     return (
         <span
-            className={`inline-block border px-3 py-1 rounded-full text-xs ${styles[severity] || "bg-slate-800"
+            className={`inline-block border px-3 py-1 rounded-full text-xs ${styles[severity] ||
+                "bg-slate-800 text-slate-300 border-slate-700"
                 }`}
         >
-            {severity}
+            {severity || "Unknown"}
         </span>
     )
 }
@@ -423,16 +491,23 @@ function SeverityBadge({ severity }) {
 
 function PriorityBadge({ score = 0 }) {
 
+    const numericScore = Number(score) || 0
+
     let style =
         "bg-green-950 text-green-300 border-green-800"
 
-    if (score >= 90) {
+    if (numericScore >= 90) {
+
         style =
             "bg-red-950 text-red-300 border-red-800"
-    } else if (score >= 70) {
+
+    } else if (numericScore >= 70) {
+
         style =
             "bg-orange-950 text-orange-300 border-orange-800"
-    } else if (score >= 40) {
+
+    } else if (numericScore >= 40) {
+
         style =
             "bg-yellow-950 text-yellow-300 border-yellow-800"
     }
@@ -441,26 +516,9 @@ function PriorityBadge({ score = 0 }) {
         <span
             className={`inline-block border px-3 py-1 rounded-full text-xs font-semibold ${style}`}
         >
-            {score}/100
+            {numericScore}/100
         </span>
     )
-}
-
-async function handleStatusChange(reportId, newStatus) {
-    try {
-        await updateReportStatus(reportId, newStatus)
-
-        setReports((currentReports) =>
-            currentReports.map((report) =>
-                report.id === reportId
-                    ? { ...report, status: newStatus }
-                    : report
-            )
-        )
-
-    } catch (err) {
-        setError(err.message)
-    }
 }
 
 
