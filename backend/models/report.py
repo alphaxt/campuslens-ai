@@ -20,3 +20,6 @@ class AIAnalysis(BaseModel):
     accessibility_flag: bool = False
     confidence: float
     priority_score: int = 0
+
+class StatusUpdateRequest(BaseModel):
+    status: str

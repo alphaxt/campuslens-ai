@@ -1,13 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from models.report import ReportRequest, StatusUpdateRequest
+
+
 from services.database import (
     save_report,
     get_all_reports,
-    get_report_by_id
+    get_report_by_id,
+    update_report_status
 )
 
-from models.report import ReportRequest
 from services.ai_service import analyze_issue
 from services.priority import calculate_priority
 
@@ -139,6 +142,53 @@ def get_report(report_id: str):
         return {
             "success": True,
             "report": reports[0]
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+
+@app.put("/reports/{report_id}/status")
+def change_report_status(
+    report_id: str,
+    status_update: StatusUpdateRequest
+):
+
+    allowed_statuses = [
+        "Submitted",
+        "Under Review",
+        "In Progress",
+        "Resolved",
+        "Closed"
+    ]
+
+    if status_update.status not in allowed_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid report status"
+        )
+
+    try:
+        updated_report = update_report_status(
+            report_id,
+            status_update.status
+        )
+
+        if not updated_report:
+            raise HTTPException(
+                status_code=404,
+                detail="Report not found"
+            )
+
+        return {
+            "success": True,
+            "report": updated_report[0]
         }
 
     except HTTPException:

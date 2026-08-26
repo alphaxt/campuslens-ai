@@ -58,3 +58,17 @@ def get_report_by_id(report_id: str):
     )
 
     return response.data
+
+def update_report_status(report_id: str, new_status: str):
+
+    response = (
+        supabase
+        .table("reports")
+        .update({
+            "status": new_status
+        })
+        .eq("id", report_id)
+        .execute()
+    )
+
+    return response.data

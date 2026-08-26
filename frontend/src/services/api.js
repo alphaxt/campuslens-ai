@@ -29,3 +29,27 @@ export async function getReports() {
 
   return response.json()
 }
+
+export async function updateReportStatus(reportId, status) {
+  const response = await fetch(
+    `${API_URL}/reports/${reportId}/status`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status,
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(
+      error.detail || "Failed to update report status"
+    )
+  }
+
+  return response.json()
+}
