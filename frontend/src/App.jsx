@@ -7,6 +7,7 @@ import {
 import Navbar from "./components/Navbar"
 import ReportIssue from "./pages/ReportIssue"
 import MyReports from "./pages/MyReports"
+import AdminDashboard from "./pages/AdminDashboard"
 
 
 function App() {
@@ -27,6 +28,11 @@ function App() {
           <Route
             path="/my-reports"
             element={<MyReports />}
+          />
+
+          <Route
+            path="/admin"
+            element={<AdminDashboard />}
           />
 
         </Routes>

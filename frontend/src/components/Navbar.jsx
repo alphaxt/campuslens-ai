@@ -26,6 +26,13 @@ function Navbar() {
           >
             My Reports
           </Link>
+
+          <Link
+            to="/admin"
+            className="text-slate-300 hover:text-white"
+          >
+            Admin
+          </Link>
         </div>
 
       </div>
