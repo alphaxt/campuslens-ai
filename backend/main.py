@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends
-from services.auth import get_authenticated_user
+from services.auth import (
+    get_authenticated_user,
+    get_admin_user
+)
 
 from models.report import ReportRequest, StatusUpdateRequest
 
@@ -189,7 +192,7 @@ def change_report_status(
     report_id: str,
     status_update: StatusUpdateRequest,
     current_user: dict = Depends(
-        get_authenticated_user
+        get_admin_user
     )
 ):
 
@@ -236,12 +239,20 @@ def change_report_status(
 
 
 @app.get("/analytics/campus-pulse")
-def campus_pulse():
+def campus_pulse(
+    current_user: dict = Depends(
+        get_admin_user
+    )
+):
 
     try:
-        reports = get_all_reports()
+        reports = get_all_reports(
+            current_user["token"]
+        )
 
-        pulse = generate_campus_pulse(reports)
+        pulse = generate_campus_pulse(
+            reports
+        )
 
         return {
             "success": True,

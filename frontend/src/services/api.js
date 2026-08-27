@@ -102,15 +102,21 @@ export async function updateReportStatus(
 
 export async function getCampusPulse() {
 
+  const headers = await getAuthHeaders()
+
   const response = await fetch(
-    `${API_URL}/analytics/campus-pulse`
+    `${API_URL}/analytics/campus-pulse`,
+    {
+      headers
+    }
   )
 
   if (!response.ok) {
     const error = await response.json()
 
     throw new Error(
-      error.detail || "Failed to generate Campus Pulse"
+      error.detail ||
+      "Failed to generate Campus Pulse"
     )
   }
 
