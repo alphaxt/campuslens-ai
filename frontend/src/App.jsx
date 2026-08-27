@@ -4,10 +4,14 @@ import {
   Route
 } from "react-router-dom"
 
+import ProtectedRoute from "./components/ProtectedRoute"
+
 import Navbar from "./components/Navbar"
 import ReportIssue from "./pages/ReportIssue"
 import MyReports from "./pages/MyReports"
 import AdminDashboard from "./pages/AdminDashboard"
+import Login from "./pages/Login"
+import Register from "./pages/Register"
 
 
 function App() {
@@ -22,17 +26,35 @@ function App() {
 
           <Route
             path="/"
-            element={<ReportIssue />}
+            element={<ProtectedRoute allowedRole="student">
+              <ReportIssue />
+            </ProtectedRoute>}
           />
 
           <Route
             path="/my-reports"
-            element={<MyReports />}
+            element={<ProtectedRoute allowedRole="student">
+
+              <MyReports />
+
+            </ProtectedRoute>}
           />
 
           <Route
             path="/admin"
-            element={<AdminDashboard />}
+            element={<ProtectedRoute allowedRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>}
+          />
+
+          <Route
+            path="/login"
+            element={<Login />}
+          />
+
+          <Route
+            path="/register"
+            element={<Register />}
           />
 
         </Routes>

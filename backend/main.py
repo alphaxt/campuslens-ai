@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends
+from services.auth import get_authenticated_user
 
 from models.report import ReportRequest, StatusUpdateRequest
 
@@ -51,7 +53,12 @@ def health():
 
 
 @app.post("/reports")
-def create_report(report: ReportRequest):
+def create_report(
+    report: ReportRequest,
+    current_user: dict = Depends(
+        get_authenticated_user
+    )
+):
 
     try:
         analysis = analyze_issue(report.description)
@@ -71,6 +78,7 @@ def create_report(report: ReportRequest):
         analysis["priority_score"] = priority_score
 
         report_data = {
+            "student_id": current_user["id"],
             "original_description": report.description,
             "ai_summary": analysis["summary"],
             "category": analysis["category"],
@@ -96,7 +104,10 @@ def create_report(report: ReportRequest):
             )
         }
 
-        saved_report = save_report(report_data)
+        saved_report = save_report(
+         report_data,
+         current_user["token"]
+        )
 
         return {
             "success": True,
@@ -112,10 +123,16 @@ def create_report(report: ReportRequest):
         )
 
 @app.get("/reports")
-def list_reports():
+def list_reports(
+    current_user: dict = Depends(
+        get_authenticated_user
+    )
+):
 
     try:
-        reports = get_all_reports()
+        reports = get_all_reports(
+            current_user["token"]
+        )
 
         return {
             "success": True,
@@ -131,10 +148,19 @@ def list_reports():
 
 
 @app.get("/reports/{report_id}")
-def get_report(report_id: str):
+def get_report(
+    report_id: str,
+    current_user: dict = Depends(
+        get_authenticated_user
+    )
+):
 
     try:
-        reports = get_report_by_id(report_id)
+
+        reports = get_report_by_id(
+            report_id,
+            current_user["token"]
+        )
 
         if not reports:
             raise HTTPException(
@@ -151,6 +177,7 @@ def get_report(report_id: str):
         raise
 
     except Exception as error:
+
         raise HTTPException(
             status_code=500,
             detail=str(error)
@@ -160,7 +187,10 @@ def get_report(report_id: str):
 @app.put("/reports/{report_id}/status")
 def change_report_status(
     report_id: str,
-    status_update: StatusUpdateRequest
+    status_update: StatusUpdateRequest,
+    current_user: dict = Depends(
+        get_authenticated_user
+    )
 ):
 
     allowed_statuses = [
@@ -180,7 +210,8 @@ def change_report_status(
     try:
         updated_report = update_report_status(
             report_id,
-            status_update.status
+            status_update.status,
+            current_user["token"]
         )
 
         if not updated_report:

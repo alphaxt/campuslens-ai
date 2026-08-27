@@ -1,53 +1,98 @@
+
+
+import { supabase } from "./supabase"
+
 const API_URL = "http://127.0.0.1:8000"
 
+
+async function getAuthHeaders() {
+
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    throw new Error("You must be logged in.")
+  }
+
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`
+  }
+}
+
 export async function createReport(description) {
-  const response = await fetch(`${API_URL}/reports`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      description,
-    }),
-  })
 
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.detail || "Failed to submit report")
-  }
+  const headers = await getAuthHeaders()
 
-  return response.json()
-}
-
-
-export async function getReports() {
-  const response = await fetch(`${API_URL}/reports`)
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch reports")
-  }
-
-  return response.json()
-}
-
-export async function updateReportStatus(reportId, status) {
   const response = await fetch(
-    `${API_URL}/reports/${reportId}/status`,
+    `${API_URL}/reports`,
     {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      method: "POST",
+      headers,
       body: JSON.stringify({
-        status,
-      }),
+        description
+      })
     }
   )
 
   if (!response.ok) {
     const error = await response.json()
+
     throw new Error(
-      error.detail || "Failed to update report status"
+      error.detail || "Failed to submit report"
+    )
+  }
+
+  return response.json()
+}
+
+export async function getReports() {
+
+  const headers = await getAuthHeaders()
+
+  const response = await fetch(
+    `${API_URL}/reports`,
+    {
+      headers
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+
+    throw new Error(
+      error.detail || "Failed to fetch reports"
+    )
+  }
+
+  return response.json()
+}
+
+export async function updateReportStatus(
+  reportId,
+  status
+) {
+
+  const headers = await getAuthHeaders()
+
+  const response = await fetch(
+    `${API_URL}/reports/${reportId}/status`,
+    {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        status
+      })
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+
+    throw new Error(
+      error.detail ||
+      "Failed to update report status"
     )
   }
 

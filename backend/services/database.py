@@ -22,10 +22,22 @@ supabase: Client = create_client(
 )
 
 
-def save_report(report_data: dict):
+def save_report(
+    report_data: dict,
+    access_token: str
+):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
 
     response = (
-        supabase
+        user_client
         .table("reports")
         .insert(report_data)
         .execute()
@@ -34,10 +46,19 @@ def save_report(report_data: dict):
     return response.data
 
 
-def get_all_reports():
+def get_all_reports(access_token: str):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
 
     response = (
-        supabase
+        user_client
         .table("reports")
         .select("*")
         .order("created_at", desc=True)
@@ -47,10 +68,22 @@ def get_all_reports():
     return response.data
 
 
-def get_report_by_id(report_id: str):
+def get_report_by_id(
+    report_id: str,
+    access_token: str
+):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
 
     response = (
-        supabase
+        user_client
         .table("reports")
         .select("*")
         .eq("id", report_id)
@@ -59,10 +92,23 @@ def get_report_by_id(report_id: str):
 
     return response.data
 
-def update_report_status(report_id: str, new_status: str):
+def update_report_status(
+    report_id: str,
+    new_status: str,
+    access_token: str
+):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
 
     response = (
-        supabase
+        user_client
         .table("reports")
         .update({
             "status": new_status
