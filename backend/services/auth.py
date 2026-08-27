@@ -116,3 +116,54 @@ def get_admin_user(
     return require_admin(
         current_user
     )
+
+
+def get_student_user(
+    current_user: dict = Depends(
+        get_authenticated_user
+    )
+):
+
+    token = current_user["token"]
+
+    client = create_client(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    )
+
+    client.postgrest.auth(token)
+
+    try:
+        response = (
+            client
+            .table("profiles")
+            .select("role")
+            .eq("id", current_user["id"])
+            .single()
+            .execute()
+        )
+
+        profile = response.data
+
+        if not profile:
+            raise HTTPException(
+                status_code=403,
+                detail="Profile not found"
+            )
+
+        if profile["role"] != "student":
+            raise HTTPException(
+                status_code=403,
+                detail="Student access required"
+            )
+
+        return current_user
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        raise HTTPException(
+            status_code=403,
+            detail="Unable to verify student role"
+        )
