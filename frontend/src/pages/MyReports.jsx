@@ -1,16 +1,26 @@
 import { useEffect, useState } from "react"
 import { getReports } from "../services/api"
+import StatusHistory from "../components/StatusHistory"
 
 
 function MyReports() {
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [expandedReports, setExpandedReports] = useState({})
 
 
   useEffect(() => {
     loadReports()
   }, [])
+
+
+  function toggleHistory(reportId) {
+    setExpandedReports((prev) => ({
+      ...prev,
+      [reportId]: !prev[reportId]
+    }))
+  }
 
 
   async function loadReports() {
@@ -77,6 +87,8 @@ function MyReports() {
           <ReportCard
             key={report.id}
             report={report}
+            isExpanded={expandedReports[report.id] || false}
+            onToggleHistory={() => toggleHistory(report.id)}
           />
         ))}
 
@@ -87,7 +99,7 @@ function MyReports() {
 }
 
 
-function ReportCard({ report }) {
+function ReportCard({ report, isExpanded, onToggleHistory }) {
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -144,6 +156,23 @@ function ReportCard({ report }) {
         />
 
       </div>
+
+
+      <div className="mt-4">
+        <button
+          onClick={onToggleHistory}
+          className="text-sm text-blue-400 hover:text-blue-300 font-medium"
+        >
+          {isExpanded ? "Hide History" : "View History"}
+        </button>
+      </div>
+
+
+      {isExpanded && (
+        <div className="mt-4">
+          <StatusHistory reportId={report.id} />
+        </div>
+      )}
 
     </div>
   )
