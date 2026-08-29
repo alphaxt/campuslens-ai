@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends
 from services.auth import (
     get_authenticated_user,
-    get_admin_user
+    get_admin_user,
+    get_student_user
 )
 
 from models.report import ReportRequest, StatusUpdateRequest
@@ -13,7 +14,9 @@ from services.database import (
     save_report,
     get_all_reports,
     get_report_by_id,
-    update_report_status
+    update_report_status,
+    add_status_history,
+    get_status_history
 )
 
 from services.ai_service import (
@@ -59,7 +62,7 @@ def health():
 def create_report(
     report: ReportRequest,
     current_user: dict = Depends(
-        get_authenticated_user
+        get_student_user
     )
 ):
 
@@ -150,6 +153,35 @@ def list_reports(
         )
 
 
+@app.get("/reports/{report_id}/history")
+def report_status_history(
+    report_id: str,
+    current_user: dict = Depends(
+        get_authenticated_user
+    )
+):
+
+    try:
+
+        history = get_status_history(
+            report_id,
+            current_user["token"]
+        )
+
+        return {
+            "success": True,
+            "count": len(history),
+            "history": history
+        }
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+
 @app.get("/reports/{report_id}")
 def get_report(
     report_id: str,
@@ -207,31 +239,71 @@ def change_report_status(
     if status_update.status not in allowed_statuses:
         raise HTTPException(
             status_code=400,
-            detail="Invalid report status"
+            detail="Invalid status"
         )
 
     try:
-        updated_report = update_report_status(
+
+        # 1. Get current report
+        existing_reports = get_report_by_id(
             report_id,
-            status_update.status,
             current_user["token"]
         )
 
-        if not updated_report:
+        if not existing_reports:
             raise HTTPException(
                 status_code=404,
                 detail="Report not found"
             )
 
+        old_status = existing_reports[0]["status"]
+        new_status = status_update.status
+
+        # Don't create duplicate history
+        if old_status == new_status:
+            return {
+                "success": True,
+                "message": "Status already set",
+                "report": existing_reports[0]
+            }
+
+        # 2. Update report
+        updated_reports = update_report_status(
+            report_id,
+            new_status,
+            current_user["token"]
+        )
+
+        if not updated_reports:
+            raise HTTPException(
+                status_code=500,
+                detail="Report status was not updated"
+            )
+
+        # 3. Save history
+        history = add_status_history(
+            report_id=report_id,
+            old_status=old_status,
+            new_status=new_status,
+            changed_by=current_user["id"],
+            access_token=current_user["token"]
+        )
+
         return {
             "success": True,
-            "report": updated_report[0]
+            "report": updated_reports[0],
+            "history": history
         }
 
     except HTTPException:
         raise
 
     except Exception as error:
+        print(
+            "STATUS UPDATE ERROR:",
+            repr(error)
+        )
+
         raise HTTPException(
             status_code=500,
             detail=str(error)
@@ -265,3 +337,7 @@ def campus_pulse(
             status_code=500,
             detail=str(error)
         )
+
+
+
+

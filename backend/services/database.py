@@ -118,3 +118,60 @@ def update_report_status(
     )
 
     return response.data
+
+
+def add_status_history(
+    report_id: str,
+    old_status: str,
+    new_status: str,
+    changed_by: str,
+    access_token: str
+):
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
+
+    response = (
+        user_client
+        .table("status_history")
+        .insert({
+            "report_id": report_id,
+            "old_status": old_status,
+            "new_status": new_status,
+            "changed_by": changed_by
+        })
+        .execute()
+    )
+
+    return response.data
+
+
+def get_status_history(
+    report_id: str,
+    access_token: str
+):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
+
+    response = (
+        user_client
+        .table("status_history")
+        .select("*")
+        .eq("report_id", report_id)
+        .order("changed_at")
+        .execute()
+    )
+
+    return response.data

@@ -35,28 +35,70 @@ function AdminDashboard() {
     }
 
 
-    async function handleStatusChange(reportId, newStatus) {
+    async function handleStatusChange(
+        reportId,
+        newStatus
+    ) {
         try {
             setError("")
 
-            await updateReportStatus(reportId, newStatus)
+            // Store original status for potential rollback
+            const originalReport = reports.find(r => r.id === reportId)
+            const originalStatus = originalReport?.status
 
-            setReports((currentReports) =>
-                currentReports.map((report) =>
+            // Optimistic update: Update local state immediately
+            setReports(prevReports =>
+                prevReports.map(report =>
                     report.id === reportId
-                        ? {
-                            ...report,
-                            status: newStatus
-                        }
+                        ? { ...report, status: newStatus }
                         : report
                 )
             )
 
-        } catch (err) {
-            setError(err.message)
+            console.log(
+                "Optimistic update applied for report",
+                reportId,
+                "new status:",
+                newStatus
+            )
+
+            // Call backend to persist the change
+            await updateReportStatus(
+                reportId,
+                newStatus
+            )
+
+            console.log(
+                "Status update successful for report",
+                reportId
+            )
+
+        } catch (error) {
+            console.error(
+                "Failed to update status:",
+                error
+            )
+
+            // Rollback on error: Revert to original status
+            if (originalStatus) {
+                setReports(prevReports =>
+                    prevReports.map(report =>
+                        report.id === reportId
+                            ? { ...report, status: originalStatus }
+                            : report
+                    )
+                )
+                console.log(
+                    "Rollback applied for report",
+                    reportId,
+                    "restored to:",
+                    originalStatus
+                )
+            }
+
+            setError(error.message)
         }
     }
-
 
     const filteredReports = useMemo(() => {
         return reports
@@ -352,7 +394,7 @@ function AdminDashboard() {
                                     <td className="p-4">
 
                                         <select
-                                            value={report.status || "Submitted"}
+                                            value={report.status}
                                             onChange={(event) =>
                                                 handleStatusChange(
                                                     report.id,

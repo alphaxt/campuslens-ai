@@ -122,3 +122,27 @@ export async function getCampusPulse() {
 
   return response.json()
 }
+
+
+export async function getReportHistory(reportId) {
+
+  const headers = await getAuthHeaders()
+
+  const response = await fetch(
+    `${API_URL}/reports/${reportId}/history`,
+    {
+      headers
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+
+    throw new Error(
+      error.detail ||
+      "Failed to fetch report history"
+    )
+  }
+
+  return response.json()
+}
