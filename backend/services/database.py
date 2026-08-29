@@ -175,3 +175,75 @@ def get_status_history(
     )
 
     return response.data
+
+
+
+def get_active_reports(
+    access_token: str
+):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
+
+    response = (
+        user_client
+        .table("reports")
+        .select(
+           "id,"
+           "original_description,"
+           "ai_summary,"
+           "category,"
+           "extracted_location,"
+           "status,"
+           "priority_score"
+        )
+        .execute()
+    ) 
+
+    reports = response.data or []
+
+    return [
+        report
+        for report in reports
+        if report.get("status")
+        not in ["Resolved", "Closed"]
+    ]
+
+
+
+def save_duplicate_relationship(
+    report_id: str,
+    duplicate_of_report_id: str,
+    similarity_score: float,
+    access_token: str
+):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
+
+    response = (
+        user_client
+        .table("duplicate_relationships")
+        .insert({
+            "report_id": report_id,
+            "duplicate_of_report_id":
+                duplicate_of_report_id,
+            "similarity_score":
+                similarity_score
+        })
+        .execute()
+    )
+
+    return response.data

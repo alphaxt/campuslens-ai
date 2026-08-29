@@ -7,6 +7,10 @@ from services.auth import (
     get_student_user
 )
 
+from services.duplicate import (
+    find_best_duplicate
+)
+
 from models.report import ReportRequest, StatusUpdateRequest
 
 
@@ -16,7 +20,9 @@ from services.database import (
     get_report_by_id,
     update_report_status,
     add_status_history,
-    get_status_history
+    get_status_history,
+    get_active_reports,
+    save_duplicate_relationship
 )
 
 from services.ai_service import (
@@ -67,7 +73,23 @@ def create_report(
 ):
 
     try:
-        analysis = analyze_issue(report.description)
+
+        analysis = analyze_issue(
+            report.description
+        )
+
+        active_reports = get_active_reports(
+            current_user["token"]
+        )
+
+        duplicate_result = find_best_duplicate(
+            description=report.description,
+            category=analysis["category"],
+            location=analysis.get(
+                "extracted_location"
+            ),
+            reports=active_reports
+        )
 
         priority_score = calculate_priority(
             severity=analysis["severity"],
@@ -81,44 +103,113 @@ def create_report(
             )
         )
 
-        analysis["priority_score"] = priority_score
+        if duplicate_result["is_duplicate"]:
+            priority_score += 10
+
+        original_priority = (
+             duplicate_result.get(
+                "duplicate_priority"
+             )
+             or 0
+        )
+
+ 
+        priority_score = max(
+            priority_score,
+            original_priority
+        ) 
+        priority_score += 10     
+
+        priority_score = min(
+            priority_score,
+            100
+        )
+
+        analysis["priority_score"] = (
+            priority_score
+        )
 
         report_data = {
-            "student_id": current_user["id"],
-            "original_description": report.description,
-            "ai_summary": analysis["summary"],
-            "category": analysis["category"],
-            "severity": analysis["severity"],
-            "extracted_location": analysis.get(
-                "extracted_location"
-            ),
-            "recommended_department": analysis[
-                "recommended_department"
-            ],
-            "priority_score": priority_score,
-            "status": "Submitted",
-            "is_safety_flag": analysis.get(
-                "safety_flag",
-                False
-            ),
-            "is_accessibility_flag": analysis.get(
-                "accessibility_flag",
-                False
-            ),
-            "confidence": analysis.get(
-                "confidence"
-            )
+            "student_id":
+                current_user["id"],
+
+            "original_description":
+                report.description,
+
+            "ai_summary":
+                analysis["summary"],
+
+            "category":
+                analysis["category"],
+
+            "severity":
+                analysis["severity"],
+
+            "extracted_location":
+                analysis.get(
+                    "extracted_location"
+                ),
+
+            "recommended_department":
+                analysis[
+                    "recommended_department"
+                ],
+
+            "priority_score":
+                priority_score,
+
+            "status":
+                "Submitted",
+
+            "is_safety_flag":
+                analysis.get(
+                    "safety_flag",
+                    False
+                ),
+
+            "is_accessibility_flag":
+                analysis.get(
+                    "accessibility_flag",
+                    False
+                ),
+
+            "confidence":
+                analysis.get(
+                    "confidence"
+                )
         }
 
         saved_report = save_report(
-         report_data,
-         current_user["token"]
+            report_data,
+            current_user["token"]
         )
+
+        new_report = saved_report[0]
+
+        if duplicate_result[
+            "is_duplicate"
+        ]:
+
+            save_duplicate_relationship(
+                report_id=new_report["id"],
+                duplicate_of_report_id=
+                    duplicate_result[
+                        "duplicate_report_id"
+                    ],
+                similarity_score=
+                    duplicate_result[
+                        "similarity_score"
+                    ],
+                access_token=
+                    current_user["token"]
+            )
 
         return {
             "success": True,
             "report": saved_report,
-            "analysis": analysis
+            "analysis": analysis,
+            "duplicate":
+                duplicate_result
         }
 
     except Exception as error:
@@ -308,36 +399,3 @@ def change_report_status(
             status_code=500,
             detail=str(error)
         )
-
-
-@app.get("/analytics/campus-pulse")
-def campus_pulse(
-    current_user: dict = Depends(
-        get_admin_user
-    )
-):
-
-    try:
-        reports = get_all_reports(
-            current_user["token"]
-        )
-
-        pulse = generate_campus_pulse(
-            reports
-        )
-
-        return {
-            "success": True,
-            "report_count": len(reports),
-            "pulse": pulse
-        }
-
-    except Exception as error:
-        raise HTTPException(
-            status_code=500,
-            detail=str(error)
-        )
-
-
-
-
