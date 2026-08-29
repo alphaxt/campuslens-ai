@@ -247,3 +247,60 @@ def save_duplicate_relationship(
     )
 
     return response.data
+
+
+def get_duplicate_count(
+    report_id: str,
+    access_token: str
+):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
+
+    response = (
+        user_client
+        .table("duplicate_relationships")
+        .select("count")
+        .eq("duplicate_of_report_id", report_id)
+        .execute()
+    )
+
+    if response and hasattr(response, 'data') and response.data:
+        count_data = response.data[0]
+        if hasattr(count_data, 'count'):
+            return count_data.count
+    return 0
+
+
+def update_report_priority(
+    report_id: str,
+    new_priority: int,
+    access_token: str
+):
+
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
+
+    response = (
+        user_client
+        .table("reports")
+        .update({
+            "priority_score": new_priority
+        })
+        .eq("id", report_id)
+        .execute()
+    )
+
+    return response.data

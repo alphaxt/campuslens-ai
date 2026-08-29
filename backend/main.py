@@ -22,7 +22,9 @@ from services.database import (
     add_status_history,
     get_status_history,
     get_active_reports,
-    save_duplicate_relationship
+    save_duplicate_relationship,
+    get_duplicate_count,
+    update_report_priority
 )
 
 from services.ai_service import (
@@ -129,6 +131,19 @@ def create_report(
             priority_score
         )
 
+        original_report_id = duplicate_result.get(
+            "duplicate_report_id"
+        )
+
+        duplicate_count = 0
+        if original_report_id:
+            duplicate_count = get_duplicate_count(
+                original_report_id,
+                current_user["token"]
+            )
+
+        analysis["duplicate_count"] = duplicate_count
+
         report_data = {
             "student_id":
                 current_user["id"],
@@ -190,6 +205,7 @@ def create_report(
             "is_duplicate"
         ]:
 
+            # Save the duplicate relationship first
             save_duplicate_relationship(
                 report_id=new_report["id"],
                 duplicate_of_report_id=
@@ -203,6 +219,51 @@ def create_report(
                 access_token=
                     current_user["token"]
             )
+
+            # Now get the updated count (includes the new relationship)
+            original_report_id = duplicate_result.get(
+                "duplicate_report_id"
+            )
+            if original_report_id:
+                # Get the updated count of duplicates pointing to this original report
+                dup_count = get_duplicate_count(
+                    original_report_id,
+                    current_user["token"]
+                )
+                
+                # Get current priority of original report
+                original_reports = get_report_by_id(
+                    original_report_id,
+                    current_user["token"]
+                )
+                current_priority = (
+                    original_reports[0].get("priority_score") or 0
+                    if original_reports else 0
+                )
+                
+                # Calculate new priority using priority calculation function
+                # First get the severity for the original report
+                if original_reports:
+                    original_severity = original_reports[0].get("severity", "Medium")
+                    original_safety = original_reports[0].get("is_safety_flag", False)
+                    original_accessibility = original_reports[0].get("is_accessibility_flag", False)
+                    
+                    # Calculate what the new priority should be based on duplicate count
+                    new_priority = calculate_priority(
+                        severity=original_severity,
+                        safety_flag=original_safety,
+                        accessibility_flag=original_accessibility,
+                        duplicate_count=dup_count
+                    )
+                    
+                    # Only increase priority, don't decrease
+                    final_priority = max(current_priority, new_priority)
+                    
+                    update_report_priority(
+                        original_report_id,
+                        final_priority,
+                        current_user["token"]
+                    )
 
         return {
             "success": True,

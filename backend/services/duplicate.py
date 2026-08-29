@@ -230,5 +230,8 @@ def find_best_duplicate(
                 "priority_score"
             )
             if is_duplicate
-            else None
+            else None,
+
+        "is_original":
+            is_duplicate
     }

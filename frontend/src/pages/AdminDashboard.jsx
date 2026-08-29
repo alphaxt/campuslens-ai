@@ -331,6 +331,7 @@ function AdminDashboard() {
                                 <th className="p-4">Department</th>
                                 <th className="p-4">Priority</th>
                                 <th className="p-4">Status</th>
+                                <th className="p-4">Duplicates</th>
                             </tr>
 
                         </thead>
@@ -424,6 +425,16 @@ function AdminDashboard() {
                                             </option>
                                         </select>
 
+                                    </td>
+
+                                    <td className="p-4">
+                                        {report.duplicate_count && report.duplicate_count > 0 ? (
+                                            <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold bg-blue-900 text-blue-300 rounded-full border border-blue-700">
+                                                {report.duplicate_count} related
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-slate-500">None</span>
+                                        )}
                                     </td>
 
                                 </tr>
