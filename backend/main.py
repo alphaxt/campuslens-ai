@@ -75,7 +75,8 @@ def create_report(
 ):
 
     try:
-
+        # Analyze the issue - this will return fallback analysis on API failure
+        # and never raise an exception (handled inside analyze_issue)
         analysis = analyze_issue(
             report.description
         )
@@ -272,11 +273,16 @@ def create_report(
                 duplicate_result
         }
 
-    except Exception as error:
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404, 400, etc.)
+        raise
 
+    except Exception as error:
+        # Log the error but don't expose raw error details to users
+        print(f"CREATE REPORT ERROR: {repr(error)}")
         raise HTTPException(
             status_code=500,
-            detail=str(error)
+            detail="An error occurred while creating the report. Please try again."
         )
 
 @app.get("/reports")

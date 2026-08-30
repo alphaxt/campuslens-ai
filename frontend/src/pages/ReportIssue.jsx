@@ -2,6 +2,10 @@ import { useState } from "react"
 import { createReport } from "../services/api"
 
 
+const GEMINI_UNAVAILABLE_MESSAGE =
+  "AI analysis is temporarily unavailable. Please try again later."
+
+
 function ReportIssue() {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
@@ -27,7 +31,17 @@ function ReportIssue() {
       setResult(data)
 
     } catch (err) {
-      setError(err.message)
+      // Check if this is a Gemini API failure (raw error contains "error")
+      // and replace with user-friendly message
+      const errorMessage = err.message.toLowerCase()
+      if (
+        errorMessage.includes("error") &&
+        !errorMessage.includes("failed to")
+      ) {
+        setError(GEMINI_UNAVAILABLE_MESSAGE)
+      } else {
+        setError(err.message)
+      }
 
     } finally {
       setLoading(false)
