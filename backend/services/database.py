@@ -304,3 +304,32 @@ def update_report_priority(
     )
 
     return response.data
+
+
+def get_reports_for_priority_update(
+    access_token: str
+):
+    """
+    Get all active reports (not Resolved or Closed) that need priority recalculation.
+    Used for daily priority recalculation based on duration.
+    """
+    user_client = create_client(
+        supabase_url,
+        supabase_key
+    )
+
+    user_client.postgrest.auth(
+        access_token
+    )
+
+    response = (
+        user_client
+        .table("reports")
+        .select("*")
+        .neq("status", "Resolved")
+        .neq("status", "Closed")
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    return response.data

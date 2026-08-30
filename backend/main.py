@@ -24,15 +24,15 @@ from services.database import (
     get_active_reports,
     save_duplicate_relationship,
     get_duplicate_count,
-    update_report_priority
+    update_report_priority,
+    get_reports_for_priority_update
 )
 
 from services.ai_service import (
     analyze_issue,
     generate_campus_pulse
 )
-from services.priority import calculate_priority
-
+from services.priority import calculate_priority_score, calculate_duration_days, should_recalculate_priority
 
 app = FastAPI(
     title="CampusLens AI API",
@@ -93,7 +93,9 @@ def create_report(
             reports=active_reports
         )
 
-        priority_score = calculate_priority(
+        # Calculate priority score with duration
+        # For new reports, created_at is not yet available, so we use None initially
+        priority_score = calculate_priority_score(
             severity=analysis["severity"],
             safety_flag=analysis.get(
                 "safety_flag",
@@ -102,7 +104,8 @@ def create_report(
             accessibility_flag=analysis.get(
                 "accessibility_flag",
                 False
-            )
+            ),
+            duplicate_count=0  # Will be updated after duplicate check
         )
 
         if duplicate_result["is_duplicate"]:
@@ -115,20 +118,15 @@ def create_report(
              or 0
         )
 
- 
         priority_score = max(
             priority_score,
             original_priority
-        ) 
+        )
         priority_score += 10     
 
         priority_score = min(
             priority_score,
             100
-        )
-
-        analysis["priority_score"] = (
-            priority_score
         )
 
         original_report_id = duplicate_result.get(
@@ -241,19 +239,20 @@ def create_report(
                     if original_reports else 0
                 )
                 
-                # Calculate new priority using priority calculation function
-                # First get the severity for the original report
+                # Calculate what the new priority should be based on duplicate count
                 if original_reports:
                     original_severity = original_reports[0].get("severity", "Medium")
                     original_safety = original_reports[0].get("is_safety_flag", False)
                     original_accessibility = original_reports[0].get("is_accessibility_flag", False)
                     
-                    # Calculate what the new priority should be based on duplicate count
-                    new_priority = calculate_priority(
+                    # Calculate new priority using priority calculation function
+                    new_priority = calculate_priority_score(
                         severity=original_severity,
                         safety_flag=original_safety,
                         accessibility_flag=original_accessibility,
-                        duplicate_count=dup_count
+                        duplicate_count=dup_count,
+                        created_at=original_reports[0].get("created_at"),
+                        current_status=original_reports[0].get("status")
                     )
                     
                     # Only increase priority, don't decrease
@@ -365,6 +364,69 @@ def get_report(
 
     except Exception as error:
 
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+
+@app.post("/priority/recalculate")
+def recalculate_priorities(
+    current_user: dict = Depends(
+        get_admin_user
+    )
+):
+    """
+    Recalculate priority scores for all active reports based on duration.
+    This endpoint should be called daily via a scheduled job.
+    """
+    try:
+        reports = get_reports_for_priority_update(
+            current_user["token"]
+        )
+        
+        recalc_count = 0
+        no_change_count = 0
+        
+        for report in reports:
+            report_id = report.get("id")
+            severity = report.get("severity", "Medium")
+            safety_flag = report.get("is_safety_flag", False)
+            accessibility_flag = report.get("is_accessibility_flag", False)
+            duplicate_count = report.get("duplicate_count", 0)
+            created_at = report.get("created_at")
+            current_status = report.get("status", "Submitted")
+            current_priority = report.get("priority_score", 0)
+            
+            # Check if recalculation is needed
+            should_recalc, new_priority = should_recalculate_priority(
+                severity=severity,
+                safety_flag=safety_flag,
+                accessibility_flag=accessibility_flag,
+                duplicate_count=duplicate_count,
+                created_at=created_at,
+                current_status=current_status,
+                current_priority=current_priority
+            )
+            
+            if should_recalc:
+                update_report_priority(
+                    report_id,
+                    new_priority,
+                    current_user["token"]
+                )
+                recalc_count += 1
+            else:
+                no_change_count += 1
+        
+        return {
+            "success": True,
+            "recalculated": recalc_count,
+            "unchanged": no_change_count,
+            "total_active": len(reports)
+        }
+        
+    except Exception as error:
         raise HTTPException(
             status_code=500,
             detail=str(error)
