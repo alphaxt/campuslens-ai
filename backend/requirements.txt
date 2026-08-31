@@ -3,4 +3,5 @@ uvicorn[standard]
 python-dotenv
 supabase
 google-genai
+google-api-core
 pydantic

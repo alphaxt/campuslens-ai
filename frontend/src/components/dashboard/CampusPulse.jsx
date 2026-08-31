@@ -24,16 +24,11 @@ function CampusPulse() {
             setPulse(data.pulse)
 
         } catch (err) {
-            // Check if this is a Gemini API failure and replace with user-friendly message
-            const errorMessage = err.message.toLowerCase()
-            if (
-                errorMessage.includes("error") &&
-                !errorMessage.includes("failed to")
-            ) {
-                setError(GEMINI_UNAVAILABLE_MESSAGE)
-            } else {
-                setError(err.message)
-            }
+            console.error("Campus Pulse error:", err)
+            
+            // Always show user-friendly message
+            // The backend now returns fallback data so this should rarely happen
+            setError(GEMINI_UNAVAILABLE_MESSAGE)
 
         } finally {
             setLoading(false)

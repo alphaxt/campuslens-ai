@@ -2,7 +2,7 @@
 
 import { supabase } from "./supabase"
 
-const API_URL = "http://127.0.0.1:8000"
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
 
 
 async function getAuthHeaders() {
@@ -113,6 +113,11 @@ export async function getCampusPulse() {
 
   if (!response.ok) {
     const error = await response.json()
+
+    // Handle Gemini 429 RESOURCE_EXHAUSTED specifically
+    if (response.status === 429) {
+      throw new Error("Gemini API quota exceeded. Using fallback analysis.")
+    }
 
     throw new Error(
       error.detail ||

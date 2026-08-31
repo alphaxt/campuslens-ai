@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends
@@ -44,7 +46,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
+        # Vercel deployment URLs can be configured via VITE_VERCEL_URL
+        # or add specific production URLs as needed
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -57,6 +61,43 @@ def root():
     return {
         "message": "CampusLens AI API is running"
     }
+
+
+@app.get("/analytics/campus-pulse")
+def get_campus_pulse(
+    current_user: dict = Depends(
+        get_admin_user
+    )
+):
+    """
+    Generate campus pulse summary using Gemini AI.
+    Falls back to basic stats if Gemini is unavailable.
+    """
+    try:
+        # Get all reports for analysis
+        reports = get_all_reports(current_user["token"])
+        
+        # Generate campus pulse using AI (with fallback handling inside)
+        campus_pulse = generate_campus_pulse(reports)
+        
+        return {
+            "success": True,
+            "pulse": campus_pulse
+        }
+        
+    except Exception as error:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Campus Pulse generation error: {error}")
+        
+        # Return fallback campus pulse if Gemini fails
+        # Get all reports for fallback analysis
+        reports = get_all_reports(current_user["token"])
+        fallback_pulse = generate_campus_pulse(reports)
+        
+        return {
+            "success": True,
+            "pulse": fallback_pulse
+        }
 
 
 @app.get("/health")

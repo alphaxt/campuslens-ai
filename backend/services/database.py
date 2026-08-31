@@ -32,8 +32,9 @@ def save_report(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -53,11 +54,13 @@ def get_all_reports(access_token: str):
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
-    response = (
+    # Get all reports
+    reports_response = (
         user_client
         .table("reports")
         .select("*")
@@ -65,7 +68,43 @@ def get_all_reports(access_token: str):
         .execute()
     )
 
-    return response.data
+    reports = reports_response.data
+
+    # Get all duplicate relationships
+    duplicates_response = (
+        user_client
+        .table("duplicate_relationships")
+        .select("report_id, duplicate_of_report_id")
+        .execute()
+    )
+
+    duplicate_relationships = duplicates_response.data
+
+    # Count duplicate relationships for each report
+    duplicate_counts = {}
+
+    for relationship in duplicate_relationships:
+
+        report_id = relationship["report_id"]
+        duplicate_of_report_id = relationship["duplicate_of_report_id"]
+
+        duplicate_counts[report_id] = (
+            duplicate_counts.get(report_id, 0) + 1
+        )
+
+        duplicate_counts[duplicate_of_report_id] = (
+            duplicate_counts.get(duplicate_of_report_id, 0) + 1
+        )
+
+    # Add duplicate_count to every report
+    for report in reports:
+
+        report["duplicate_count"] = duplicate_counts.get(
+            report["id"],
+            0
+        )
+
+    return reports
 
 
 def get_report_by_id(
@@ -78,8 +117,9 @@ def get_report_by_id(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -103,8 +143,9 @@ def update_report_status(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -132,8 +173,9 @@ def add_status_history(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -161,8 +203,9 @@ def get_status_history(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -187,8 +230,9 @@ def get_active_reports(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -229,8 +273,9 @@ def save_duplicate_relationship(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -259,8 +304,9 @@ def get_duplicate_count(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -289,8 +335,9 @@ def update_report_priority(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
@@ -318,8 +365,9 @@ def get_reports_for_priority_update(
         supabase_key
     )
 
-    user_client.postgrest.auth(
-        access_token
+    user_client.auth.set_session(
+        access_token=access_token,
+        refresh_token=""
     )
 
     response = (
