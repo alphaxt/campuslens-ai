@@ -47,8 +47,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        # Vercel deployment URLs can be configured via VITE_VERCEL_URL
-        # or add specific production URLs as needed
+        "https://campuslens-ai.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
