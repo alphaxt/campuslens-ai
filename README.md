@@ -1286,8 +1286,8 @@ Contributions are welcome! Please follow these steps:
 
 For questions or issues:
 - 📧 Email: support@campuslens.ai
-- 🐙 GitHub Issues: https://github.com/yourusername/campuslens-ai/issues
-- 💬 Discussions: https://github.com/yourusername/campuslens-ai/discussions
+- 🐙 GitHub Issues: https://github.com/alphaxt/campuslens-ai/issues
+- 💬 Discussions: https://github.com/alphaxt/campuslens-ai/discussions
 
 ---
 
